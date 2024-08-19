@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
+import { database, ref, set, onValue, increment } from '../firebase'; // Import Firebase
 
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes = 1800 seconds
   const [isRunning, setIsRunning] = useState(false);
   const [gameMode, setGameMode] = useState(false); // Game Mode state
   const [intervalDuration, setIntervalDuration] = useState(1800); // Default interval in seconds
+  const [darkMode, setDarkMode] = useState(false); // Dark Mode state
+  const [activePostureChecks, setActivePostureChecks] = useState(0); // Active posture checks
   const timerRef = useRef(null); // To hold the timer interval ID
 
   useEffect(() => {
@@ -28,9 +31,24 @@ export default function Home() {
     return () => clearInterval(timerRef.current);
   }, [isRunning, timeLeft, gameMode, intervalDuration]);
 
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+  }, [darkMode]);
+
+  useEffect(() => {
+    // Get the current count of active posture checks
+    const activeRef = ref(database, 'activePostureChecks');
+    onValue(activeRef, (snapshot) => {
+      setActivePostureChecks(snapshot.val() || 0);
+    });
+  }, []);
+
   const startTimer = () => {
     if (!isRunning) {
       setIsRunning(true);
+      // Increment active posture checks
+      const activeRef = ref(database, 'activePostureChecks');
+      set(activeRef, increment(1));
     }
   };
 
@@ -38,6 +56,9 @@ export default function Home() {
     clearInterval(timerRef.current); // Clear the existing timer
     setIsRunning(false);
     setTimeLeft(intervalDuration); // Reset to selected interval
+    // Decrement active posture checks
+    const activeRef = ref(database, 'activePostureChecks');
+    set(activeRef, increment(-1));
   };
 
   const toggleGameMode = () => {
@@ -57,7 +78,7 @@ export default function Home() {
   };
 
   const toggleDarkMode = () => {
-    document.body.classList.toggle("dark-mode");
+    setDarkMode(!darkMode);
   };
 
   return (
@@ -73,7 +94,7 @@ export default function Home() {
         {gameMode ? "Disable Game Mode" : "Enable Game Mode"}
       </button>
       <button onClick={toggleDarkMode} style={{ padding: '10px 20px', fontSize: '16px', marginTop: '10px' }}>
-        Toggle Dark Mode
+        {darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
       </button>
       <div style={{ marginTop: '20px' }}>
         <label htmlFor="interval">Set Reminder Interval: </label>
@@ -83,6 +104,7 @@ export default function Home() {
           <option value={7200}>2 Hours</option>
         </select>
       </div>
+      <p style={{ marginTop: '20px' }}>Active Posture Checks: {activePostureChecks}</p>
     </div>
   );
 }
