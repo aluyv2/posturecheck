@@ -1,69 +1,63 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes = 1800 seconds
   const [isRunning, setIsRunning] = useState(false);
   const [gameMode, setGameMode] = useState(false); // Game Mode state
-  const [interval, setInterval] = useState(1800); // Default interval
-  const [darkMode, setDarkMode] = useState(false); // Dark Mode state
+  const [intervalDuration, setIntervalDuration] = useState(1800); // Default interval in seconds
+  const timerRef = useRef(null); // To hold the timer interval ID
 
   useEffect(() => {
-    if (darkMode) {
-      document.body.style.backgroundColor = "#333";
-      document.body.style.color = "#fff";
-    } else {
-      document.body.style.backgroundColor = "#fff";
-      document.body.style.color = "#000";
-    }
-  }, [darkMode]);
-
-  useEffect(() => {
-    // Request notification permission on load
-    if (Notification.permission !== "granted") {
-      Notification.requestPermission();
-    }
-
-    let timer;
     if (isRunning && !gameMode && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft(timeLeft - 1);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prevTimeLeft) => prevTimeLeft - 1);
       }, 1000);
     } else if (timeLeft === 0 && !gameMode) {
       if (Notification.permission === "granted") {
         new Notification("Posture Check!", {
           body: "Time to fix your posture.",
-          icon: "/posture-icon.png" // You can add an icon here
+          icon: "/posture-icon.png" // Optional: Add a custom icon
         });
       } else {
         alert("Posture Check! Time to fix your posture.");
       }
       setIsRunning(false);
-      setTimeLeft(interval); // Reset to selected interval
+      setTimeLeft(intervalDuration); // Reset to selected interval
     }
-    return () => clearInterval(timer);
-  }, [isRunning, timeLeft, gameMode, interval]);
+
+    return () => clearInterval(timerRef.current);
+  }, [isRunning, timeLeft, gameMode, intervalDuration]);
 
   const startTimer = () => {
-    setIsRunning(true);
+    if (!isRunning) {
+      setIsRunning(true);
+    }
   };
 
   const resetTimer = () => {
+    clearInterval(timerRef.current); // Clear the existing timer
     setIsRunning(false);
-    setTimeLeft(interval);
+    setTimeLeft(intervalDuration); // Reset to selected interval
   };
 
   const toggleGameMode = () => {
     setGameMode(!gameMode);
+    if (gameMode) {
+      startTimer(); // Resume timer when game mode is turned off
+    } else {
+      clearInterval(timerRef.current); // Pause timer when game mode is on
+      setIsRunning(false);
+    }
   };
 
   const handleIntervalChange = (e) => {
     const selectedInterval = parseInt(e.target.value);
-    setInterval(selectedInterval);
+    setIntervalDuration(selectedInterval);
     setTimeLeft(selectedInterval);
   };
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+    document.body.classList.toggle("dark-mode");
   };
 
   return (
@@ -79,11 +73,11 @@ export default function Home() {
         {gameMode ? "Disable Game Mode" : "Enable Game Mode"}
       </button>
       <button onClick={toggleDarkMode} style={{ padding: '10px 20px', fontSize: '16px', marginTop: '10px' }}>
-        {darkMode ? "Light Mode" : "Dark Mode"}
+        Toggle Dark Mode
       </button>
       <div style={{ marginTop: '20px' }}>
         <label htmlFor="interval">Set Reminder Interval: </label>
-        <select id="interval" value={interval} onChange={handleIntervalChange} style={{ padding: '5px 10px' }}>
+        <select id="interval" value={intervalDuration} onChange={handleIntervalChange} style={{ padding: '5px 10px' }}>
           <option value={1800}>30 Minutes</option>
           <option value={3600}>1 Hour</option>
           <option value={7200}>2 Hours</option>
