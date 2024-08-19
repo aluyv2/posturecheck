@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { database, ref, set, onValue, increment } from '../firebase'; // Import Firebase
+import { database, dbRef, dbSet, onValue, dbIncrement } from '../firebase'; // Import Firebase
 
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes = 1800 seconds
@@ -37,7 +37,7 @@ export default function Home() {
 
   useEffect(() => {
     // Get the current count of active posture checks
-    const activeRef = ref(database, 'activePostureChecks');
+    const activeRef = dbRef(database, 'activePostureChecks');
     onValue(activeRef, (snapshot) => {
       setActivePostureChecks(snapshot.val() || 0);
     });
@@ -47,8 +47,8 @@ export default function Home() {
     if (!isRunning) {
       setIsRunning(true);
       // Increment active posture checks
-      const activeRef = ref(database, 'activePostureChecks');
-      set(activeRef, increment(1));
+      const activeRef = dbRef(database, 'activePostureChecks');
+      dbSet(activeRef, dbIncrement(1));
     }
   };
 
@@ -57,8 +57,8 @@ export default function Home() {
     setIsRunning(false);
     setTimeLeft(intervalDuration); // Reset to selected interval
     // Decrement active posture checks
-    const activeRef = ref(database, 'activePostureChecks');
-    set(activeRef, increment(-1));
+    const activeRef = dbRef(database, 'activePostureChecks');
+    dbSet(activeRef, dbIncrement(-1));
   };
 
   const toggleGameMode = () => {
